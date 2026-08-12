@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}KPI Management System{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/kpi.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo"><i class="fas fa-chart-line"></i><span>KPI System</span></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ current_user.full_name[0] }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ current_user.full_name }}</div>
+        <div class="user-role badge-{{ current_user.role }}">
+          {{ 'ผู้ดูแลระบบ' if current_user.is_admin else current_user.department or 'สมาชิก' }}
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <span class="nav-section-title">เมนูหลัก</span>
+        <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+          <i class="fas fa-home"></i><span>Dashboard</span></a>
+        <a href="{{ url_for('main.team_overview') }}" class="nav-item {% if request.endpoint == 'main.team_overview' %}active{% endif %}">
+          <i class="fas fa-users"></i><span>ภาพรวมทีม</span></a>
+      </div>
+      {% if not current_user.is_admin %}
+      <div class="nav-section">
+        <span class="nav-section-title">บันทึก KPI รายเดือน</span>
+        {% for month_num, month_name in [(7,'กรกฎาคม'),(8,'สิงหาคม'),(9,'กันยายน'),(10,'ตุลาคม'),(11,'พฤศจิกายน'),(12,'ธันวาคม')] %}
+        <a href="{{ url_for('kpi.record', year=2569, month=month_num) }}" class="nav-item nav-month {% if request.endpoint == 'kpi.record' and request.view_args.month == month_num %}active{% endif %}">
+          <i class="fas fa-calendar-day"></i><span>{{ month_name }}</span></a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if current_user.is_admin %}
+      <div class="nav-section">
+        <span class="nav-section-title">จัดการระบบ</span>
+        <a href="{{ url_for('admin.users') }}" class="nav-item {% if 'admin.users' in request.endpoint %}active{% endif %}">
+          <i class="fas fa-user-cog"></i><span>จัดการผู้ใช้</span></a>
+        <a href="{{ url_for('admin.kpi_categories') }}" class="nav-item {% if 'admin.kpi' in request.endpoint or request.endpoint == 'admin.save_kpi' %}active{% endif %}">
+          <i class="fas fa-tasks"></i><span>จัดการ KPI</span></a>
+        <a href="{{ url_for('admin.all_records') }}" class="nav-item {% if request.endpoint == 'admin.all_records' %}active{% endif %}">
+          <i class="fas fa-clipboard-list"></i><span>บันทึกทั้งหมด</span></a>
+      </div>
+      {% endif %}
+      <div class="nav-section">
+        <span class="nav-section-title">บัญชีผู้ใช้</span>
+        {% if not current_user.is_admin %}
+        <a href="{{ url_for('admin.export_my_kpi') }}" class="nav-item"><i class="fas fa-file-excel"></i><span>Export รายงาน</span></a>
+        {% endif %}
+        <a href="{{ url_for('auth.profile') }}" class="nav-item {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+          <i class="fas fa-user-edit"></i><span>แก้ไขโปรไฟล์</span></a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout"><i class="fas fa-sign-out-alt"></i><span>ออกจากระบบ</span></a>
+      </div>
+    </nav>
+  </aside>
+  <main class="main-content" id="mainContent">
+    <div class="top-bar">
+      <div class="breadcrumb">{% block breadcrumb %}{% endblock %}</div>
+      <div class="top-bar-right"><span class="user-greeting">สวัสดี, <strong>{{ current_user.full_name }}</strong></span></div>
+    </div>
+    <div class="content-area">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+          {{ message }}
+          <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

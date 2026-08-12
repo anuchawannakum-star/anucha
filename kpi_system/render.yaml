@@ -1,0 +1,24 @@
+# render.yaml — Blueprint สำหรับ deploy บน Render.com
+# เมื่อเชื่อม GitHub repo แล้ว Render จะอ่านไฟล์นี้และสร้าง service + ฐานข้อมูลให้อัตโนมัติ
+services:
+  - type: web
+    name: kpi-system
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true        # Render สุ่มค่าปลอดภัยให้อัตโนมัติ
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kpi-db
+          property: connectionString
+
+databases:
+  - name: kpi-db
+    plan: free
+    databaseName: kpi
+    user: kpi

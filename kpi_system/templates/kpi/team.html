@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}ภาพรวมทีม{% endblock %}
+{% block breadcrumb %}ภาพรวมทีม{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fas fa-users"></i> ภาพรวมทีม — KPI ประจำปี {{ year }}</h2>
+  <p class="text-muted">เปรียบเทียบคะแนนเฉลี่ยประจำปีของสมาชิกในทีม</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fas fa-ranking-star"></i> อันดับคะแนนเฉลี่ยประจำปี</div>
+  <table class="kpi-table">
+    <thead>
+      <tr>
+        <th>อันดับ</th><th class="text-left">สมาชิก</th>
+        {% for m in month_labels %}<th>{{ m }}</th>{% endfor %}
+        <th>เฉลี่ย</th><th>เกรด</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in team %}
+      <tr>
+        <td><strong>{{ loop.index }}</strong></td>
+        <td class="text-left">{{ row.user.full_name }}</td>
+        {% for s in row.monthly %}<td>{{ '%.1f'|format(s) }}</td>{% endfor %}
+        <td class="score-cell">{{ '%.1f'|format(row.avg) }}</td>
+        <td><span class="grade-badge grade-{{ row.grade }}">{{ row.grade }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fas fa-chart-column"></i> เปรียบเทียบคะแนนเฉลี่ยประจำปี</div>
+  <div id="teamChart" style="height:320px"></div>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fas fa-chart-line"></i> แนวโน้มรายเดือนของทีม</div>
+  <div id="teamTrend" style="height:320px"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/highcharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/modules/accessibility.js"></script>
+<script>
+var teamNames = {{ team|map(attribute='user.full_name')|list|tojson }};
+var teamAvg   = {{ team|map(attribute='avg')|list|tojson }};
+var monthLabels = {{ month_labels|tojson }};
+var teamMonthly = {{ team|map(attribute='monthly')|list|tojson }};
+
+Highcharts.chart('teamChart', {
+  chart: { type: 'column', backgroundColor: 'transparent' }, title: { text: null }, credits: { enabled: false },
+  xAxis: { categories: teamNames },
+  yAxis: { title: { text: 'คะแนนเฉลี่ย' }, max: 100 },
+  legend: { enabled: false },
+  plotOptions: { column: { dataLabels: { enabled: true, format: '{y:.1f}' }, colorByPoint: true } },
+  series: [{ name: 'คะแนนเฉลี่ยประจำปี', data: teamAvg }]
+});
+Highcharts.chart('teamTrend', {
+  chart: { backgroundColor: 'transparent' }, title: { text: null }, credits: { enabled: false },
+  xAxis: { categories: monthLabels },
+  yAxis: { title: { text: 'คะแนนรวม' }, max: 100 },
+  tooltip: { shared: true, valueSuffix: ' คะแนน' },
+  series: teamNames.map(function(n, i){ return { name: n, data: teamMonthly[i] }; })
+});
+</script>
+{% endblock %}

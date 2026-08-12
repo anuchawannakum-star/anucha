@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}บันทึกคะแนน KPI - {{ month_name }} {{ year }}{% endblock %}
+{% block breadcrumb %}บันทึก KPI / {{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fas fa-clipboard-check"></i> บันทึกคะแนน KPI — {{ target.full_name }}</h2>
+  <p class="text-muted">{{ month_name }} {{ year }} · กรอกค่าจริง ระบบจะแปลงเป็นระดับ 1–5 และคำนวณคะแนนถ่วงน้ำหนักให้อัตโนมัติ</p>
+</div>
+
+<!-- แถบสรุปด้านบน -->
+<div class="summary-bar">
+  <div class="summary-item">
+    <span class="summary-label">น้ำหนักรวม</span>
+    <span class="summary-value {% if total_weight != 100 %}text-danger{% else %}text-success{% endif %}">
+      {{ total_weight }}%
+    </span>
+    {% if total_weight != 100 %}<small class="text-danger">⚠️ ควรเท่ากับ 100%</small>{% endif %}
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">คะแนนรวมเดือนนี้</span>
+    <span class="summary-value text-primary" id="monthTotal">{{ '%.2f'|format(month_total) }}</span>
+    <small class="text-muted">/ 100</small>
+  </div>
+</div>
+
+<form method="POST" id="kpiForm">
+  <div class="card">
+    <table class="kpi-table">
+      <thead>
+        <tr>
+          <th class="text-left">หัวข้อ KPI</th>
+          <th>ประเภท</th>
+          <th>น้ำหนัก</th>
+          <th>ค่าจริง</th>
+          <th>ระดับ</th>
+          <th>คะแนน</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="text-left">
+            <strong>{{ loop.index }}. {{ row.cat.name }}</strong>
+            <small class="threshold-hint">
+              เกณฑ์ 1→5: {{ row.cat.thresholds.replace(',', ' → ') }} {{ row.cat.unit }}
+              {% if row.cat.direction == 'higher' %}(มาก=ดี){% else %}(น้อย=ดี){% endif %}
+            </small>
+          </td>
+          <td>
+            {% if row.cat.is_team %}
+              <span class="badge badge-team">ส่วนกลาง</span>
+            {% else %}
+              <span class="badge badge-personal">รายบุคคล</span>
+            {% endif %}
+          </td>
+          <td>{{ row.cat.weight }}%</td>
+          <td>
+            <input type="text" name="kpi_{{ row.cat.id }}" value="{{ row.value }}"
+                   class="input-value" data-cat="{{ row.cat.id }}" data-weight="{{ row.cat.weight }}"
+                   placeholder="{{ row.cat.unit }}">
+          </td>
+          <td class="level-cell lv{{ row.level or 1 }}" id="level_{{ row.cat.id }}">
+            {{ row.level or '—' }}
+          </td>
+          <td class="score-cell" id="score_{{ row.cat.id }}">{{ '%.2f'|format(row.score) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกคะแนนเดือนนี้</button>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost"><i class="fas fa-chart-pie"></i> ดูสรุปภาพรวม</a>
+    </div>
+  </div>
+</form>
+
+<div class="info-note">
+  <i class="fas fa-info-circle"></i>
+  <b>วิธีคำนวณ:</b> คะแนนหัวข้อ = (ระดับ ÷ 5) × น้ำหนัก · คะแนนรวมเดือน = ผลรวมทุกหัวข้อ (เต็ม 100) ·
+  คะแนนประจำปี = เฉลี่ยคะแนนรวม 6 เดือน (ก.ค.–ธ.ค.)
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// คำนวณระดับ+คะแนน real-time ผ่าน API (ไม่ต้องรีเฟรชหน้า)
+document.querySelectorAll('.input-value').forEach(function(inp){
+  inp.addEventListener('input', function(){
+    var catId = this.dataset.cat;
+    fetch("{{ url_for('kpi.preview', cat_id=0) }}".replace('/0', '/' + catId)
+          + '?value=' + encodeURIComponent(this.value))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var lvlEl = document.getElementById('level_' + catId);
+        lvlEl.textContent = d.level || '—';
+        lvlEl.className = 'level-cell lv' + (d.level || 1);
+        document.getElementById('score_' + catId).textContent = d.score.toFixed(2);
+        recalcTotal();
+      });
+  });
+});
+function recalcTotal(){
+  var total = 0;
+  document.querySelectorAll('.score-cell').forEach(function(el){
+    total += parseFloat(el.textContent) || 0;
+  });
+  document.getElementById('monthTotal').textContent = total.toFixed(2);
+}
+</script>
+{% endblock %}

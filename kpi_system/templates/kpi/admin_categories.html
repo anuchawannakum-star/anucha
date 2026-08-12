@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}จัดการหัวข้อ KPI{% endblock %}
+{% block breadcrumb %}จัดการระบบ / จัดการ KPI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fas fa-tasks"></i> จัดการหัวข้อ KPI ประจำปี {{ year }}</h2>
+  <p class="text-muted">เพิ่ม / แก้ไข / ลบ หัวข้อ KPI ส่วนกลาง (ข้อ 1–5) และรายบุคคล (ข้อ 6+)</p>
+</div>
+
+<!-- ===== KPI ส่วนกลาง ===== -->
+<div class="card">
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span><i class="fas fa-layer-group"></i> KPI ส่วนกลาง (ใช้ทั้งทีม)</span>
+    <span>
+      น้ำหนักรวม:
+      <b class="{% if team_weight != 50 and team_weight != 100 %}text-danger{% else %}text-success{% endif %}">{{ team_weight }}%</b>
+      <button class="btn btn-primary btn-sm"
+              onclick="openForm('team', null)"><i class="fas fa-plus"></i> เพิ่มหัวข้อ</button>
+    </span>
+  </div>
+  <table class="kpi-table">
+    <thead><tr>
+      <th>ข้อ</th><th class="text-left">หัวข้อ</th><th>หน่วย</th><th>น้ำหนัก</th>
+      <th>ทิศทาง</th><th>เกณฑ์ 1→5</th><th>จัดการ</th>
+    </tr></thead>
+    <tbody>
+      {% for c in team %}
+      <tr>
+        <td>{{ c.order_no }}</td>
+        <td class="text-left">{{ c.name }}</td>
+        <td>{{ c.unit }}</td>
+        <td>{{ c.weight }}%</td>
+        <td>{% if c.direction == 'higher' %}<span class="badge badge-team">มาก=ดี</span>{% else %}<span class="badge badge-personal">น้อย=ดี</span>{% endif %}</td>
+        <td><code>{{ c.thresholds }}</code></td>
+        <td class="actions">
+          <button class="btn-icon" title="แก้ไข"
+            onclick='openForm("team", {{ {"id":c.id,"name":c.name,"unit":c.unit,"weight":c.weight,"order_no":c.order_no,"direction":c.direction,"thresholds":c.thresholds}|tojson }})'>
+            <i class="fas fa-edit"></i></button>
+          <form method="POST" action="{{ url_for('admin.delete_kpi', cat_id=c.id) }}" style="display:inline"
+                onsubmit="return confirm('ลบหัวข้อนี้? บันทึกคะแนนที่เกี่ยวข้องจะถูกลบด้วย')">
+            <button class="btn-icon btn-danger" title="ลบ"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== KPI รายบุคคล ===== -->
+{% for p in personal %}
+<div class="card">
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span><i class="fas fa-user"></i> KPI รายบุคคล — {{ p.user.full_name }}</span>
+    <span>
+      น้ำหนักรวม (ส่วนกลาง+บุคคล):
+      <b class="{% if p.total_weight != 100 %}text-danger{% else %}text-success{% endif %}">{{ p.total_weight }}%</b>
+      <button class="btn btn-primary btn-sm"
+              onclick="openForm('personal', null, {{ p.user.id }})"><i class="fas fa-plus"></i> เพิ่มหัวข้อ</button>
+    </span>
+  </div>
+  {% if p.cats %}
+  <table class="kpi-table">
+    <thead><tr>
+      <th>ข้อ</th><th class="text-left">หัวข้อ</th><th>หน่วย</th><th>น้ำหนัก</th>
+      <th>ทิศทาง</th><th>เกณฑ์ 1→5</th><th>จัดการ</th>
+    </tr></thead>
+    <tbody>
+      {% for c in p.cats %}
+      <tr>
+        <td>{{ c.order_no }}</td>
+        <td class="text-left">{{ c.name }}</td>
+        <td>{{ c.unit }}</td>
+        <td>{{ c.weight }}%</td>
+        <td>{% if c.direction == 'higher' %}<span class="badge badge-team">มาก=ดี</span>{% else %}<span class="badge badge-personal">น้อย=ดี</span>{% endif %}</td>
+        <td><code>{{ c.thresholds }}</code></td>
+        <td class="actions">
+          <button class="btn-icon" title="แก้ไข"
+            onclick='openForm("personal", {{ {"id":c.id,"name":c.name,"unit":c.unit,"weight":c.weight,"order_no":c.order_no,"direction":c.direction,"thresholds":c.thresholds}|tojson }}, {{ p.user.id }})'>
+            <i class="fas fa-edit"></i></button>
+          <form method="POST" action="{{ url_for('admin.delete_kpi', cat_id=c.id) }}" style="display:inline"
+                onsubmit="return confirm('ลบหัวข้อนี้? บันทึกคะแนนที่เกี่ยวข้องจะถูกลบด้วย')">
+            <button class="btn-icon btn-danger" title="ลบ"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted" style="font-size:13px">ยังไม่มี KPI รายบุคคล — กด "เพิ่มหัวข้อ" เพื่อสร้าง</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+<!-- ===== Modal ฟอร์มเพิ่ม/แก้ไข ===== -->
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal-box">
+    <h3 id="modalTitle">เพิ่มหัวข้อ KPI</h3>
+    <form method="POST" action="{{ url_for('admin.save_kpi') }}">
+      <input type="hidden" name="id" id="f_id">
+      <input type="hidden" name="scope" id="f_scope">
+      <input type="hidden" name="owner_id" id="f_owner">
+
+      <div class="form-group">
+        <label>ชื่อหัวข้อ KPI</label>
+        <input type="text" name="name" id="f_name" class="form-control" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ลำดับข้อ</label>
+          <input type="number" name="order_no" id="f_order" class="form-control" min="1">
+        </div>
+        <div class="form-group">
+          <label>หน่วย</label>
+          <input type="text" name="unit" id="f_unit" class="form-control" placeholder="เช่น %, เคส, กิจกรรม">
+        </div>
+        <div class="form-group">
+          <label>น้ำหนัก (%)</label>
+          <input type="number" name="weight" id="f_weight" class="form-control" step="0.5" min="0" max="100" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ทิศทางคะแนน</label>
+          <select name="direction" id="f_direction" class="form-control">
+            <option value="higher">ค่ามาก = ดี (higher)</option>
+            <option value="lower">ค่าน้อย = ดี (lower)</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2">
+          <label>เกณฑ์ระดับ 1→5 (5 ค่า คั่นด้วย ,)</label>
+          <input type="text" name="thresholds" id="f_thresholds" class="form-control"
+                 placeholder="เช่น 80,90,100,110,120" required>
+        </div>
+      </div>
+      <div class="hint"><i class="fas fa-info-circle"></i>
+        ค่าเรียงจากที่ทำให้ได้ <b>ระดับ 1</b> → <b>ระดับ 5</b> ·
+        สำหรับ "ค่าน้อย=ดี" ให้เรียงจากค่ามาก (ระดับ1) ไปค่าน้อย (ระดับ5) เช่น <code>5,4,3,1,0</code>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึก</button>
+        <button type="button" class="btn btn-ghost" onclick="closeForm()">ยกเลิก</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openForm(scope, data, ownerId){
+  document.getElementById('modal').style.display = 'flex';
+  document.getElementById('f_scope').value = scope;
+  document.getElementById('f_owner').value = ownerId || '';
+  if(data){
+    document.getElementById('modalTitle').textContent = 'แก้ไขหัวข้อ KPI';
+    document.getElementById('f_id').value = data.id;
+    document.getElementById('f_name').value = data.name;
+    document.getElementById('f_unit').value = data.unit;
+    document.getElementById('f_weight').value = data.weight;
+    document.getElementById('f_order').value = data.order_no;
+    document.getElementById('f_direction').value = data.direction;
+    document.getElementById('f_thresholds').value = data.thresholds;
+  } else {
+    document.getElementById('modalTitle').textContent = 'เพิ่มหัวข้อ KPI';
+    document.getElementById('f_id').value = '';
+    document.querySelector('#modal form').reset();
+    document.getElementById('f_scope').value = scope;
+    document.getElementById('f_owner').value = ownerId || '';
+  }
+}
+function closeForm(){ document.getElementById('modal').style.display = 'none'; }
+</script>
+{% endblock %}

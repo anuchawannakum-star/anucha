@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}จัดการผู้ใช้{% endblock %}
+{% block breadcrumb %}จัดการระบบ / จัดการผู้ใช้{% endblock %}
+{% block content %}
+<div class="page-header"><h2><i class="fas fa-user-cog"></i> จัดการผู้ใช้</h2></div>
+<div class="card">
+  <table class="kpi-table">
+    <thead><tr><th>#</th><th class="text-left">ชื่อ-สกุล</th><th>Username</th><th>แผนก</th><th>บทบาท</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td class="text-left">{{ u.full_name }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.department or '—' }}</td>
+        <td>{% if u.is_admin %}<span class="badge badge-team">ผู้ดูแลระบบ</span>{% else %}<span class="badge badge-personal">สมาชิก</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

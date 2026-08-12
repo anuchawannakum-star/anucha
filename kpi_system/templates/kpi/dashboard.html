@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Dashboard สรุป KPI{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fas fa-chart-pie"></i> สรุปวิเคราะห์ภาพรวม KPI ประจำปี {{ year }}</h2>
+  <p class="text-muted">{{ current_user.full_name }} · รอบประเมิน กรกฎาคม – ธันวาคม</p>
+</div>
+
+<!-- การ์ดสรุป -->
+<div class="kpi-cards">
+  <div class="kpi-card">
+    <div class="kpi-card-label">คะแนนเฉลี่ยประจำปี</div>
+    <div class="kpi-card-value text-primary">{{ '%.1f'|format(avg) }}</div>
+    <div class="kpi-card-sub">/ 100</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-card-label">เกรดประเมิน</div>
+    <div class="kpi-card-value grade-{{ grade }}">{{ grade }}</div>
+    <div class="kpi-card-sub">
+      {% if grade == 'A' %}ดีเยี่ยม{% elif grade == 'B' %}ดี{% elif grade == 'C' %}ปานกลาง{% elif grade == 'D' %}ต้องปรับปรุง{% else %}ต่ำกว่ามาตรฐาน{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fas fa-chart-line"></i> แนวโน้มคะแนนรวมรายเดือน</div>
+  <div id="trendChart" style="height:320px"></div>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fas fa-th"></i> คะแนนเฉลี่ยรายหัวข้อ KPI (ระดับ 1–5)</div>
+  <div id="topicChart" style="height:340px"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/highcharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/modules/accessibility.js"></script>
+<script>
+Highcharts.chart('trendChart', {
+  chart: { backgroundColor: 'transparent' }, title: { text: null }, credits: { enabled: false },
+  xAxis: { categories: {{ month_labels|tojson }} },
+  yAxis: { title: { text: 'คะแนนรวม' }, max: 100 },
+  tooltip: { valueSuffix: ' คะแนน' },
+  series: [{ name: 'คะแนนรวมเดือน', data: {{ monthly|tojson }}, color: '#0052CC' }]
+});
+Highcharts.chart('topicChart', {
+  chart: { type: 'bar', backgroundColor: 'transparent' }, title: { text: null }, credits: { enabled: false },
+  xAxis: { categories: {{ topic_levels|map(attribute='name')|list|tojson }} },
+  yAxis: { title: { text: 'ระดับเฉลี่ย (1–5)' }, max: 5 },
+  legend: { enabled: false },
+  plotOptions: { bar: { dataLabels: { enabled: true, format: '{y:.1f}' }, colorByPoint: true } },
+  series: [{ name: 'ระดับเฉลี่ย', data: {{ topic_levels|map(attribute='avg')|list|tojson }} }]
+});
+</script>
+{% endblock %}

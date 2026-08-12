@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}บันทึกคะแนนทั้งหมด{% endblock %}
+{% block breadcrumb %}จัดการระบบ / บันทึกทั้งหมด{% endblock %}
+{% block content %}
+<div class="page-header"><h2><i class="fas fa-clipboard-list"></i> บันทึกคะแนนทั้งหมด — ปี {{ year }}</h2></div>
+<div class="card">
+  <table class="kpi-table">
+    <thead><tr>
+      <th class="text-left">สมาชิก</th>
+      {% for m in month_labels %}<th>{{ m }}</th>{% endfor %}
+      <th>เฉลี่ย</th><th>เกรด</th><th>ดูรายเดือน</th>
+    </tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="text-left">{{ row.user.full_name }}</td>
+        {% for s in row.monthly %}<td>{{ '%.1f'|format(s) }}</td>{% endfor %}
+        <td class="score-cell">{{ '%.1f'|format(row.avg) }}</td>
+        <td><span class="grade-badge grade-{{ row.grade }}">{{ row.grade }}</span></td>
+        <td><a class="btn btn-ghost btn-sm" href="{{ url_for('kpi.record', year=year, month=7, user_id=row.user.id) }}"><i class="fas fa-eye"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

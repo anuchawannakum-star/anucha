@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}แก้ไขโปรไฟล์{% endblock %}
+{% block breadcrumb %}แก้ไขโปรไฟล์{% endblock %}
+{% block content %}
+<div class="page-header"><h2><i class="fas fa-user-edit"></i> แก้ไขโปรไฟล์</h2></div>
+<div class="card" style="max-width:420px">
+  <p><b>ชื่อ:</b> {{ current_user.full_name }}</p>
+  <p><b>ชื่อผู้ใช้:</b> {{ current_user.username }}</p>
+  <p><b>บทบาท:</b> {{ 'ผู้ดูแลระบบ' if current_user.is_admin else current_user.department or 'สมาชิก' }}</p>
+  <hr style="margin:14px 0;border:none;border-top:1px solid #e4e7eb">
+  <form method="POST">
+    <div class="form-group">
+      <label>เปลี่ยนรหัสผ่านใหม่</label>
+      <input type="password" name="password" class="form-control" placeholder="กรอกรหัสผ่านใหม่" required>
+    </div>
+    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึก</button>
+  </form>
+</div>
+{% endblock %}
